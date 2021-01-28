@@ -1,5 +1,8 @@
 # GPUTrackerBot
 Very crude tracker to track the price of the RTX3080 and send me a message over telegram when it drops below a certain price.
+The bot will only send messages when:
+- The price drops below the target price
+- The bot is stopped for some reason
 
 ```bash
 $ git clone https://github.com/icheered/GPUTrackerBot
@@ -23,13 +26,14 @@ If you happen to have poetry installed just execute the following commands:
 - `$ poetry shell`
 - `$ poetry install`
 
-Then run `$ python main.py` to start the bot
+Then run `$ python main.py` to start the bot.
 I myself have this running in a TMUX window (terminal multiplexer, basically manager multiple terminal instances in a single terminal) on a server, but this would run fine on a raspberry pi.
 
 If you have TMUX installed:
 - `$ tmux new -t gputracker`
 - `$ cd GPUtracker`
 - `$ poetry shell`
+- `$ poetry install`
 - `$ python main.py`
 - `ctrl+b, d` (Press ctrl+b, let go, then press d)
 
