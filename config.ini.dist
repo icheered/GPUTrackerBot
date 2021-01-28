@@ -1,0 +1,15 @@
+[Configuration File]
+"""
+This file is used to set persistent system parameters.
+
+To find your API key and chat ID check this article:
+    https://dev.to/rizkyrajitha/get-notifications-with-telegram-bot-537l
+"""
+
+[General]
+API_KEY = 00000000000000000000000000
+CHAT_ID = -0000000000000
+GPU = 3080              # Target GPU
+TARGET = 850            # Target GPU price
+POLL_INTERVAL = 1       # How often to check the price [minutes].
+TARGET_HIT_TIMEOUT = 10 # After price hits target, how long to wait between sending a message (to avoid spam)
