@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from parameters import Parameters
 from datetime import datetime
+import os
+import time
 
 async def get_price(GPU):
     URL = 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true&fv_gpu.chip=NVIDIA%20RTX%20'+GPU
@@ -25,10 +27,26 @@ async def get_price(GPU):
 
 
 async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
+    polls = 0
     while True:
-        price = await get_price(GPU)
+        price = None
+        try:
+            price = await get_price(GPU)
+        except requests.exceptions.ConnectionError:
+            logger.info("Can't connect to internet, waiting for connect...")
+            resp = os.system("ping -c 1 google.com")
+            while resp != 0:
+                logger.info("Waiting for connection...")
+                time.sleep(10)
+                resp = os.system("ping -c 1 google.com")
+            logger.info("Online again")
+            time.sleep(3)
+        except Exception as e:
+            logger.error("Can't get the price")
+            logger.error(e)
+            
         if price is not None:
-            logger.info("Lowest current price: "+ str(price))
+            logger.info("Poll "+ str(polls) +"- Lowest current price: "+ str(price))
             if price < TARGET:
                 logger.info("Sending message")
 
@@ -38,10 +56,21 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                 msg = url + s
                 ret = requests.get(msg)
                 link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true&fv_gpu.chip=NVIDIA%20RTX%20' + GPU
-                retlink = requests.get(link)
-                logger.info("Waiting with sending a message for 10 minutes")
-                await asyncio.sleep(TIMEOUT)
+                try:
+                    retlink = requests.get(link)
+                    logger.info("Waiting with sending a message for 10 minutes")
+                    await asyncio.sleep(TIMEOUT)
+                except requests.exceptions.ConnectionError:
+                    logger.info("Can't connect to internet, waiting for connect...")
+                    resp = os.system("ping -c 1 google.com")
+                    while resp != 0:
+                        logger.info("Waiting for connection...")
+                        time.sleep(10)
+                        resp = os.system("ping -c 1 google.com")
+                    logger.info("Online again")
+                    time.sleep(3)
         await asyncio.sleep(POLL_INTERVAL)
+        polls += 1
 
 
 if __name__ == "__main__":
@@ -71,6 +100,11 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("An error occured")
         logger.error(e)
+        resp = os.system("ping -c 1 google.com")
+        while resp != 0:
+            print("Waiting for connection...")
+            time.sleep(10)
+            resp = os.system("ping -c 1 google.com")
         url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
         s = "An error occured and the bot has stopped at " + str(datetime.now())
         s.replace(" ", "%20")
