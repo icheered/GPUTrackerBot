@@ -28,6 +28,7 @@ async def get_price(GPU):
 
 async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
     polls = 0
+    previous_price = 0
     while True:
         price = None
         try:
@@ -69,7 +70,31 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                         resp = os.system("ping -c 1 google.com")
                     logger.info("Online again")
                     time.sleep(3)
+            elif price < previous_price:
+                logger.info("Sending message")
+
+                s = "3080 restocked. Lowest price: " + str(price) + "!"
+                s.replace(" ", "%20")
+                url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
+                msg = url + s
+                ret = requests.get(msg)
+                link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true&fv_gpu.chip=NVIDIA%20RTX%20' + GPU
+                try:
+                    retlink = requests.get(link)
+                    logger.info("Waiting with sending a message for 10 minutes")
+                    await asyncio.sleep(TIMEOUT)
+                except requests.exceptions.ConnectionError:
+                    logger.info("Can't connect to internet, waiting for connect...")
+                    resp = os.system("ping -c 1 google.com")
+                    while resp != 0:
+                        logger.info("Waiting for connection...")
+                        time.sleep(10)
+                        resp = os.system("ping -c 1 google.com")
+                    logger.info("Online again")
+                    time.sleep(3)
+
         await asyncio.sleep(POLL_INTERVAL)
+        previous_price = price
         polls += 1
 
 
