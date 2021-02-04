@@ -70,10 +70,11 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                         resp = os.system("ping -c 1 google.com")
                     logger.info("Online again")
                     time.sleep(3)
-            elif price < previous_price:
+            
+            elif previous_price is not None and price < previous_price:
                 logger.info("Sending message")
 
-                s = "3080 restocked. Lowest price: " + str(price) + "!"
+                s = "3080 restocked. Lowest price: " + str(price) + "EUR !"
                 s.replace(" ", "%20")
                 url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
                 msg = url + s
@@ -108,13 +109,29 @@ if __name__ == "__main__":
     POLL_INTERVAL = config["POLL_INTERVAL"] * 60
     TIMEOUT = config["TARGET_HIT_TIMEOUT"] * 60
     try:
+        logger.info("Starting the bot")
+        resp = os.system("ping -c 1 google.com")
+        while resp != 0:
+            print("Waiting for connection...")
+            time.sleep(10)
+            resp = os.system("ping -c 1 google.com")
+        url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
+        s = "The bot was started at " + str(datetime.now())
+        s.replace(" ", "%20")
+        msg = url + s
+        try:
+            requests.get(msg)
+        except Exception as e:
+            logger.error("Can't start bot: "+str(e))
+
         asyncio.get_event_loop().run_until_complete(main(
             API_KEY=API_KEY, 
             CHAT_ID=CHAT_ID,
             GPU=GPU,
             TARGET=TARGET,
             POLL_INTERVAL=POLL_INTERVAL,
-            TIMEOUT=TIMEOUT))
+            TIMEOUT=TIMEOUT)
+        )
     except KeyboardInterrupt:
         logger.error("The bot was stopped")
         url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
@@ -123,15 +140,14 @@ if __name__ == "__main__":
         msg = url + s
         requests.get(msg)
     except Exception as e:
-        logger.error("An error occured")
-        logger.error(e)
+        logger.error("An error occured: "+str(e))
         resp = os.system("ping -c 1 google.com")
         while resp != 0:
             print("Waiting for connection...")
             time.sleep(10)
             resp = os.system("ping -c 1 google.com")
         url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
-        s = "An error occured and the bot has stopped at " + str(datetime.now())
+        s = "An error occured and the bot has stopped at " + str(datetime.now()+". Error: " +str(e))
         s.replace(" ", "%20")
         msg = url + s
         requests.get(msg)
