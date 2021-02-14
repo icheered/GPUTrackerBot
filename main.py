@@ -7,8 +7,25 @@ from datetime import datetime
 import os
 import time
 
-async def get_price(GPU):
-    URL = 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true&fv_gpu.chip=NVIDIA%20RTX%20'+GPU
+gpus = [
+    {
+        "gpu": "3080",
+        "suffix": "&fv_gpu.chip=NVIDIA%20RTX%203080",
+        "price": 0,
+        "prevprice": 0,
+        "target": 850
+    },
+    {
+        "gpu": "6800xt",
+        "suffix": "&fv_gpu.chip=AMD%20RX%206800%20XT",
+        "price": 0,
+        "prevprice": 0,
+        "target": 850
+    }
+]
+
+async def get_price(suffix):
+    URL = 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true'+suffix
     page = requests.get(URL)
 
     soup = BeautifulSoup(page.content, 'html.parser')
@@ -32,7 +49,8 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
     while True:
         price = None
         try:
-            price = await get_price(GPU)
+            for gpu in gpus:
+                gpu["price"] = await get_price(gpu["suffix"])
         except requests.exceptions.ConnectionError:
             logger.info("Can't connect to internet, waiting for connect...")
             resp = os.system("ping -c 1 google.com")
@@ -45,54 +63,56 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
         except Exception as e:
             logger.error("Can't get the price")
             logger.error(e)
-            
-        if price is not None:
-            logger.info("Poll "+ str(polls) +"- Lowest current price: "+ str(price))
-            if price < TARGET:
-                logger.info("Sending message")
+        
+        for gpu in gpus:
+            if gpu["price"] is not None:
+                price = gpu["price"]
+                logger.info("Poll "+ str(polls) +"- Lowest current "+gpu["gpu"]+" price: "+ str(price))
+                if price < gpu["target"]:
+                    logger.info("Sending message")
 
-                s = "3080 price dropped below "+str(TARGET)+"EUR. It is available for " + str(price) + "!"
-                s.replace(" ", "%20")
-                url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
-                msg = url + s
-                ret = requests.get(msg)
-                link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true&fv_gpu.chip=NVIDIA%20RTX%20' + GPU
-                try:
-                    retlink = requests.get(link)
-                    logger.info("Waiting with sending a message for 10 minutes")
-                    await asyncio.sleep(TIMEOUT)
-                except requests.exceptions.ConnectionError:
-                    logger.info("Can't connect to internet, waiting for connect...")
-                    resp = os.system("ping -c 1 google.com")
-                    while resp != 0:
-                        logger.info("Waiting for connection...")
-                        time.sleep(10)
+                    s = gpu["gpu"] + "price dropped below "+str(gpu["target"])+"EUR. It is available for " + str(price) + "!"
+                    s.replace(" ", "%20")
+                    url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
+                    msg = url + s
+                    ret = requests.get(msg)
+                    link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true'+gpu["suffix"]
+                    try:
+                        retlink = requests.get(link)
+                        logger.info("Waiting with sending a message for 10 minutes")
+                        await asyncio.sleep(TIMEOUT)
+                    except requests.exceptions.ConnectionError:
+                        logger.info("Can't connect to internet, waiting for connect...")
                         resp = os.system("ping -c 1 google.com")
-                    logger.info("Online again")
-                    time.sleep(3)
-            
-            elif previous_price is not None and price < previous_price:
-                logger.info("Sending message")
+                        while resp != 0:
+                            logger.info("Waiting for connection...")
+                            time.sleep(10)
+                            resp = os.system("ping -c 1 google.com")
+                        logger.info("Online again")
+                        time.sleep(3)
+                
+                elif gpu["prevprice"] is not None and gpu["price"] < gpu["prevprice"]:
+                    logger.info("Sending message")
 
-                s = "3080 restocked. Lowest price: " + str(price) + "EUR !"
-                s.replace(" ", "%20")
-                url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
-                msg = url + s
-                ret = requests.get(msg)
-                link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true&fv_gpu.chip=NVIDIA%20RTX%20' + GPU
-                try:
-                    retlink = requests.get(link)
-                    logger.info("Waiting with sending a message for 10 minutes")
-                    await asyncio.sleep(TIMEOUT)
-                except requests.exceptions.ConnectionError:
-                    logger.info("Can't connect to internet, waiting for connect...")
-                    resp = os.system("ping -c 1 google.com")
-                    while resp != 0:
-                        logger.info("Waiting for connection...")
-                        time.sleep(10)
+                    s = gpu["gpu"]+ " restocked. Lowest price: " + str(price) + "EUR !"
+                    s.replace(" ", "%20")
+                    url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
+                    msg = url + s
+                    ret = requests.get(msg)
+                    link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true'+gpu["suffix"]
+                    try:
+                        retlink = requests.get(link)
+                        logger.info("Waiting with sending a message for 10 minutes")
+                        await asyncio.sleep(TIMEOUT)
+                    except requests.exceptions.ConnectionError:
+                        logger.info("Can't connect to internet, waiting for connect...")
                         resp = os.system("ping -c 1 google.com")
-                    logger.info("Online again")
-                    time.sleep(3)
+                        while resp != 0:
+                            logger.info("Waiting for connection...")
+                            time.sleep(10)
+                            resp = os.system("ping -c 1 google.com")
+                        logger.info("Online again")
+                        time.sleep(3)
 
         await asyncio.sleep(POLL_INTERVAL)
         previous_price = price
