@@ -113,9 +113,9 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                             resp = os.system("ping -c 1 google.com")
                         logger.info("Online again")
                         time.sleep(3)
-
+            gpu["prevprice"] = gpu["price"]
         await asyncio.sleep(POLL_INTERVAL)
-        previous_price = price
+        
         polls += 1
 
 
