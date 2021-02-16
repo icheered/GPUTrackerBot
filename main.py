@@ -91,7 +91,7 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                         logger.info("Online again")
                         time.sleep(3)
                 
-                elif gpu["prevprice"] is not None and gpu["price"] < gpu["prevprice"]:
+                elif gpu["prevprice"] is None or gpu["price"] < gpu["prevprice"]:
                     logger.info("Sending message")
 
                     s = gpu["gpu"]+ " restocked. Lowest price: " + str(price) + "EUR !"
