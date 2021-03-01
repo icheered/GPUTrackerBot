@@ -21,6 +21,13 @@ gpus = [
         "price": 0,
         "prevprice": 0,
         "target": 850
+    },
+    {
+        "gpu": "3090",
+        "suffix": "&fv_gpu.chip=NVIDIA%20RTX%203090",
+        "price": 0,
+        "prevprice": 0,
+        "target": 1200
     }
 ]
 
@@ -69,16 +76,17 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                 price = gpu["price"]
                 logger.info("Poll "+ str(polls) +"- Lowest current "+gpu["gpu"]+" price: "+ str(price))
                 if price < gpu["target"]:
-                    logger.info("Sending message")
-
-                    s = gpu["gpu"] + "price dropped below "+str(gpu["target"])+"EUR. It is available for " + str(price) + "!"
-                    s.replace(" ", "%20")
+                    logger.info(str(gpu["gpu"]) + " Below target price, Sending message")
+                    s = gpu["gpu"] + "price dropped below "+str(gpu["target"])+"EUR. It is available for " + str(price) + "! Link: " + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true'+str(gpu["suffix"])+" !"
+                    formatA = s.replace("%", "%25")
+                    formattedSpaces = formatA.replace(" ", "%20")
+                    formatted = formattedSpaces.replace("&", "%26")
+                    print(formatted)
                     url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
-                    msg = url + s
-                    ret = requests.get(msg)
-                    link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true'+gpu["suffix"]
+                    msg = url + formatted
+                    print(msg)
                     try:
-                        retlink = requests.get(link)
+                        ret = requests.get(msg)
                         logger.info("Waiting with sending a message for 10 minutes")
                         await asyncio.sleep(TIMEOUT)
                     except requests.exceptions.ConnectionError:
@@ -92,18 +100,17 @@ async def main(API_KEY, CHAT_ID, GPU, TARGET, POLL_INTERVAL, TIMEOUT):
                         time.sleep(3)
                 
                 elif gpu["prevprice"] is None or gpu["price"] < gpu["prevprice"]:
-                    logger.info("Sending message")
-
-                    s = gpu["gpu"]+ " restocked. Lowest price: " + str(price) + "EUR !"
-                    s.replace(" ", "%20")
+                    logger.info(str(gpu["gpu"]) + "Restocked, Sending message.")
+                    s = gpu["gpu"]+ " restocked. Lowest price: " + str(price) + "EUR! Link: " + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true' + str(gpu["suffix"]) + " !"
+                    formatA = s.replace("%", "%25")
+                    formattedSpaces = formatA.replace(" ", "%20")
+                    formatted = formattedSpaces.replace("&", "%26")
+                    print(formatted)
                     url = "https://api.telegram.org/bot"+ API_KEY + "/sendMessage?chat_id=" + CHAT_ID + "&text="
-                    msg = url + s
-                    ret = requests.get(msg)
-                    link = url + 'https://www.gputracker.eu/nl/search/category/1/grafische-kaarten?onlyInStock=true'+gpu["suffix"]
+                    msg = url + formatted
+                    print(msg)
                     try:
-                        retlink = requests.get(link)
-                        logger.info("Waiting with sending a message for 10 minutes")
-                        await asyncio.sleep(TIMEOUT)
+                        ret = requests.get(msg)
                     except requests.exceptions.ConnectionError:
                         logger.info("Can't connect to internet, waiting for connect...")
                         resp = os.system("ping -c 1 google.com")
